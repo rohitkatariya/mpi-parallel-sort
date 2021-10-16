@@ -36,9 +36,11 @@ void pSort::sort(dataType *data, int32_t n){
     MPI_Comm_size(MPI_COMM_WORLD, &nProcs);// Group size
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank); // get my rank
 
+    int *all_counts = new int(nProcs)
     cout<<"\nsort called with rank="<<myRank<<"\tn="<<n; 
-
-
-   
+    MPI_Allgather( &n, 1, MPI_INT, all_counts, 1, MPI_INT, MPI_COMM_WORLD);
+    printf("\n%d",nProcs);
+    for(int i=0;i<nProcs;i++)
+        cout<<"\t"<<all_counts[i];
 }
 

@@ -42,6 +42,5 @@ int main(int argc, char* argv[])
     pSort this_p;
     this_p.sort(data,num_data);
     
-    
     MPI_Finalize();
 }
