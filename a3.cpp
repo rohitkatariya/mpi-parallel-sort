@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
     
     int num_data;
     srand (myRank+time(0));
-    num_data= 100+rand()%100;
+    num_data= 10+rand()%10;
     // num_data=30;
     pSort::dataType *data = new pSort::dataType[num_data];
     // cout<<"\nrank"<<myRank<<"\t";
