@@ -377,11 +377,11 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
     //     fout.close();
     // #endif
     
-    // if(pivotLocation>start){
-    //     // printf("\ncalling on left: (%d,%d) ",start,pivotLocation-1);
-    //     // if(tree_level<=1)
-    //     pquickSort(data,all_counts,all_offsets,start,pivotLocation-1,tree_level+1);
-    // }
+    if(pivotLocation>start){
+        // printf("\ncalling on left: (%d,%d) ",start,pivotLocation-1);
+        // if(tree_level<=1)
+        pquickSort(data,all_counts,all_offsets,start,pivotLocation-1,tree_level+1);
+    }
     if(pivotLocation<end){
         // printf("\ncalling on right: (%d,%d) ",pivotLocation+1,end);
         // if(true or tree_level<=1)
