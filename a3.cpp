@@ -7,7 +7,8 @@
 #include <mpi.h>
 #include "psort.h"
 /* includes MPI library code specs */
-#define MAXSIZE 100
+#define MAXSIZE 1000
+#define NUMDATA 1000000
 // #define MAXSIZE RAND_MAX
 using namespace std;
 void doProcessing(int myRank, int nProcs ){
@@ -26,8 +27,10 @@ int main(int argc, char* argv[])
     int num_data;
     srand(time(0));
     int this_incr = 2000+rand()%100;
+    #ifdef DEBUG
     if(myRank==0)
         printf("this_incr:%d",this_incr);
+    #endif
     // this_incr=2028;
     // this_incr=2056;
     // this_incr=2034;
@@ -38,7 +41,8 @@ int main(int argc, char* argv[])
     
     srand (myRank*10+this_incr);//+time(0));
     // srand (myRank*10+time(0));
-    num_data= 5+rand()%5;
+    num_data= (NUMDATA/2.0)+rand()%NUMDATA;
+    printf("\nnum_data%d",num_data);
     // num_data=30;
     pSort::dataType *data = new pSort::dataType[num_data];
     // cout<<"\nrank"<<myRank<<"\t";
@@ -54,6 +58,9 @@ int main(int argc, char* argv[])
     
     pSort this_p;
     this_p.sort(data,num_data);
+    delete[] data;
+    #ifdef DEBUG
     printf("\nMPI_Finalize");
+    #endif
     MPI_Finalize();
 }

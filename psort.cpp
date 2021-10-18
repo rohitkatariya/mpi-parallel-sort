@@ -11,7 +11,7 @@ using namespace std;
 
 // #define createRandomData
 
-#define DEBUG
+// #define DEBUG
 typedef struct {
     uint32_t x;
     char a, b;
@@ -126,15 +126,17 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
     if(myRank<startproc || myRank>endproc){
         return;
     }
+    #ifdef DEBUG
     if(myRank==startproc)
         printf("\nstarting:(start,end):(%d,%d) (%d, %d)",start,end,startproc,endproc );
+    #endif
     if(startproc==endproc){
         // change indexes
         if(end==start)
             return;
-        printf("\nqsStart: \t%s",print_arr2(data+start-all_offsets[myRank],end-start+1).c_str());
+        // printf("\nqsStart: \t%s",print_arr2(data+start-all_offsets[myRank],end-start+1).c_str());
         sQuickSort(data, start-all_offsets[myRank], end-all_offsets[myRank]);
-        printf("\nqsEnd: \t%s",print_arr2(data+start-all_offsets[myRank],end-start+1).c_str());
+        // printf("\nqsEnd: \t%s",print_arr2(data+start-all_offsets[myRank],end-start+1).c_str());
         return;
     }
     
@@ -162,9 +164,7 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
         MPI_Status recvStatus;
         MPI_Recv(&pivot_this, 1, PivotDataType_MPI, startproc, tree_level*10, MPI_COMM_WORLD,&recvStatus);
     }
-    // if(myRank!=startproc)
-    // printf("\n%d\tafter send/recv, pivot struct val(a,b,x)=(%d,%c,%d)",myRank,pivot_this.a-97,pivot_this.b,pivot_this.x);
-
+    
     // do internal pivoting
     // call internalPivoting after offsetting start end indexes
     
@@ -174,9 +174,6 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
     else
         num_lt_pivot = internalPivoting(data,start-all_offsets[myRank]+1,min(end-all_offsets[myRank],all_counts[myRank]-1),pivot_this);
     
-    // if(myRank==0)
-    //     printf("pivoted %s",print_arr2(data,all_counts[myRank]).c_str());
-
     #ifdef DEBUG
         ofstream fout;
         fout.open("output_dir/ipvt_"+ to_string(myRank)+".txt");
@@ -209,15 +206,19 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
             continue;
         MPI_Recv(num_lt_pivot_arr+i, 1, MPI_INT, i, tree_level*10, MPI_COMM_WORLD,&recvStatus);
     }
-    // if(myRank==0)
-    printf("\nnum_lt_pivot_arr %s",print_arr(num_lt_pivot_arr+startproc,endproc-startproc+1).c_str());
+    #ifdef DEBUG
+        if(myRank==startproc)
+            printf("\nnum_lt_pivot_arr %s",print_arr(num_lt_pivot_arr+startproc,endproc-startproc+1).c_str());
+    #endif
     // calculate pivot location
     int pivotLocation = start;
     for( int i=startproc;i<=endproc;i++){
         pivotLocation+=num_lt_pivot_arr[i];
     }
+    #ifdef DEBUG
     if(myRank==startproc)
         printf("\npivot (%d,%d), pivotLocation %d",pivot_this.a-97,pivot_this.b-97,pivotLocation);
+    #endif
     int pivotProc=get_proc_from_ele_idx(pivotLocation,all_counts,nProcs);
     
     MPI_Datatype myDataType_MPI;
@@ -231,15 +232,10 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
     MPI_Request pivot_sendRequest;
     if(myRank==startproc){
         MPI_Isend(data+start-all_offsets[myRank], 1, myDataType_MPI, pivotProc, tree_level*10, MPI_COMM_WORLD,&pivot_sendRequest);
-        pSort::dataType pivotData_sent= data[start-all_offsets[myRank]];
-        // if(tree_level==2)
-        // printf("\npivot data(%d) sent(%c,%c,%d,(%d,%d)) from %d",pivotLocation,pivotData_sent.a,pivotData_sent.b,pivotData_sent.x,pivotData_sent.payload[0],pivotData_sent.payload[1],myRank);
     }
     pSort::dataType pivotData_received;
     if(myRank==pivotProc){
         MPI_Recv(&pivotData_received, 1, myDataType_MPI, startproc, tree_level*10, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-        // if(tree_level==2)
-        // printf("\npivot data received(%c,%c,%d,(%d,%d)) at %d",pivotData_received.a,pivotData_received.b,pivotData_received.x,pivotData_received.payload[0],pivotData_received.payload[1],myRank);
     }
     int right_procNo = endproc;
     int left_procNo = startproc;
@@ -251,9 +247,9 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
     int left_procNo_data_start = (start-all_offsets[left_procNo]) + num_lt_pivot_arr[left_procNo]+1; //+1 because of pivot in startproc
     // printf("\nprocno %d,%d,%d",left_procNo,pivotProc,right_procNo);
     while((right_procNo>pivotProc) || (left_procNo<pivotProc)){
-        if(myRank==right_procNo){
-            printf("\n%d(%d),%d,%d(%d)",left_procNo,num_swap_ele_left_procNo,pivotProc,right_procNo,num_swap_ele_right_procNo);
-        }
+        // if(myRank==right_procNo){
+        //     printf("\n%d(%d),%d,%d(%d)",left_procNo,num_swap_ele_left_procNo,pivotProc,right_procNo,num_swap_ele_right_procNo);
+        // }
         if(num_swap_ele_right_procNo>num_swap_ele_left_procNo){
             //swap num_swap_ele_left_procNo elements
             if(num_swap_ele_left_procNo!=0){
@@ -331,12 +327,9 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
         }
     }
     
-    
+    delete[] num_lt_pivot_arr;
     //replace pivot 
     
-    // printf("\npivotProc %d %d",pivotProc,startproc);
-    // if(myRank==0)
-    //     printf("%s",print_arr2(data,all_counts[myRank]).c_str());
     if(true){
         if(start==pivotLocation){
             ;
@@ -360,22 +353,6 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
             }
         }
     }
-    
-    // #ifdef DEBUG
-    //     // ofstream fout;
-    //     fout.open("output_dir/pivoted_"+ to_string(myRank)+".txt");
-    //     // fprintf(fout,"pivot (%c,%c,%d)\n",pivot_this.a,pivot_this.b,pivot_this.x);
-    //     if(myRank==startproc)
-    //     fout<<"\npivot:("<<(pivot_this.a-97)<<","<<pivot_this.b<<","<<pivot_this.x<<",nltp:"<<num_lt_pivot<<")\n";
-    //     else
-    //     fout<<"\n";
-    //     for(int i=max(0,start-all_offsets[myRank]); i<=min(end-all_offsets[myRank],all_counts[myRank]-1) ;i++){
-    //         fout<<"\t"<<(data[i].a-97);//<<","<<data[i].b<<","<<data[i].x<<","<<i <<")";
-    //         if(i%10==9)
-    //             fout<<"\n";
-    //     }
-    //     fout.close();
-    // #endif
     
     if(pivotLocation>start){
         // printf("\ncalling on left: (%d,%d) ",start,pivotLocation-1);
@@ -408,10 +385,6 @@ void pSort::sort(dataType *data, int32_t n){
     for( int i =0;i<nProcs;i++){
         all_offsets[i]=num_ele_sort;
         num_ele_sort+=all_counts[i];
-        // #ifdef DEBUG
-        // if(myRank==0)
-        //     cout<<all_counts[i]<<"\t";
-        // #endif
     }
 
     #ifdef DEBUG
@@ -427,9 +400,7 @@ void pSort::sort(dataType *data, int32_t n){
     #endif
     MPI_Barrier(MPI_COMM_WORLD);
     pquickSort(data,all_counts,all_offsets,0,num_ele_sort-1,0);
-    
-    // printf("\nending prsort");
-    
+    MPI_Barrier(MPI_COMM_WORLD);
     #ifdef DEBUG
         // ofstream fout;
         fout.open("output_dir/out_"+ to_string(myRank)+".txt");
@@ -443,12 +414,8 @@ void pSort::sort(dataType *data, int32_t n){
         }
         fout.close();
     #endif
-
-    // #ifdef DEBUG
-    //     cout<<"\nsort called with rank="<<myRank<<"\tn="<<n; 
-    //     printf("\n%d",nProcs);
-    //     for(int i=0;i<nProcs;i++)
-    //         cout<<"\t"<<all_counts[i];
-    // #endif
+    delete[] all_counts;
+    delete[] all_offsets;
+    
 }
 
