@@ -123,23 +123,11 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
     int startproc=get_proc_from_ele_idx(start,all_counts,nProcs);
     int endproc=get_proc_from_ele_idx(end,all_counts,nProcs);
     
-    // #ifdef DEBUG
-    //     ofstream fout;
-    //     fout.open("output_dir/inp_"+ to_string(myRank)+".txt");
-    //     fout<<"\n"<<myRank;
-    //     for(int i=0; i<=all_counts[myRank]-1 ;i++){
-    //         // if(i%10==0)
-    //         //     fout<<"\n"<<myRank;
-    //         fout<<"\t"<<data[i].a-97<<","<<data[i].b-97;//<<","<<data[i].x<<","<<i <<")";
-    //     }
-    //     fout.close();
-    // #endif
-    
     if(myRank<startproc || myRank>endproc){
         return;
     }
-    // if(myRank==startproc)
-    //     printf("\nstarting:(start,end):(%d,%d) (%d, %d)",start,end,startproc,endproc );
+    if(myRank==startproc)
+        printf("\nstarting:(start,end):(%d,%d) (%d, %d)",start,end,startproc,endproc );
     if(startproc==endproc){
         // change indexes
         if(end==start)
@@ -222,14 +210,14 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
         MPI_Recv(num_lt_pivot_arr+i, 1, MPI_INT, i, tree_level*10, MPI_COMM_WORLD,&recvStatus);
     }
     // if(myRank==0)
-    // printf("\nnum_lt_pivot_arr %s",print_arr(num_lt_pivot_arr,nProcs).c_str());
+    printf("\nnum_lt_pivot_arr %s",print_arr(num_lt_pivot_arr+startproc,endproc-startproc+1).c_str());
     // calculate pivot location
-    int pivotLocation = 0;
+    int pivotLocation = start;
     for( int i=startproc;i<=endproc;i++){
         pivotLocation+=num_lt_pivot_arr[i];
     }
-    if(myRank==0)
-    printf("\npivot (%d,%d), pivotLocation %d",pivot_this.a-97,pivot_this.b-97,pivotLocation);
+    if(myRank==startproc)
+        printf("\npivot (%d,%d), pivotLocation %d",pivot_this.a-97,pivot_this.b-97,pivotLocation);
     int pivotProc=get_proc_from_ele_idx(pivotLocation,all_counts,nProcs);
     
     MPI_Datatype myDataType_MPI;
@@ -259,7 +247,7 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
 
     int num_swap_ele_right_procNo = num_lt_pivot_arr[right_procNo]; 
     int num_swap_ele_left_procNo = all_counts[left_procNo]-(start-all_offsets[left_procNo])-num_lt_pivot_arr[left_procNo]-1;//subtracting 1 because pivot is in startproc
-    int right_procNo_data_start = 0;
+    int right_procNo_data_start = num_lt_pivot_arr[right_procNo];
     int left_procNo_data_start = (start-all_offsets[left_procNo]) + num_lt_pivot_arr[left_procNo]+1; //+1 because of pivot in startproc
     // printf("\nprocno %d,%d,%d",left_procNo,pivotProc,right_procNo);
     while((right_procNo>pivotProc) || (left_procNo<pivotProc)){
@@ -271,7 +259,7 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
             if(num_swap_ele_left_procNo!=0){
                 if(myRank==right_procNo){//this is right processor
                     // send and receive
-                    MPI_Sendrecv_replace(data+right_procNo_data_start, num_swap_ele_left_procNo, myDataType_MPI,
+                    MPI_Sendrecv_replace(data+right_procNo_data_start-num_swap_ele_left_procNo, num_swap_ele_left_procNo, myDataType_MPI,
                             left_procNo, tree_level*10, left_procNo, tree_level*10,
                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     send_reqs_sent++;
@@ -284,7 +272,7 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
                     send_reqs_sent++;
                     // printf("\n###%d completed processor %d\n",myRank,left_procNo);
                 }
-                right_procNo_data_start+=num_swap_ele_left_procNo;
+                right_procNo_data_start-=num_swap_ele_left_procNo;
                 left_procNo_data_start+=num_swap_ele_left_procNo;
             }
             num_swap_ele_right_procNo=num_swap_ele_right_procNo-num_swap_ele_left_procNo;
@@ -295,15 +283,14 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
             if(num_swap_ele_left_procNo>0){
                 if(myRank==right_procNo){//this is right processor
                     // send and receive
-                    MPI_Sendrecv_replace(data+right_procNo_data_start, num_swap_ele_left_procNo, myDataType_MPI,
+                    MPI_Sendrecv_replace(data+right_procNo_data_start-num_swap_ele_left_procNo, num_swap_ele_left_procNo, myDataType_MPI,
                             left_procNo, tree_level*10, left_procNo, tree_level*10,
                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    
                     send_reqs_sent++;
                 }
                 if(myRank==left_procNo){ //this is the left processor
                     // send and receive
-                    MPI_Sendrecv_replace(data+num_lt_pivot_arr[myRank], num_swap_ele_left_procNo, myDataType_MPI,
+                    MPI_Sendrecv_replace(data+left_procNo_data_start, num_swap_ele_left_procNo, myDataType_MPI,
                             right_procNo, tree_level*10, right_procNo, tree_level*10,
                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     send_reqs_sent++;
@@ -313,14 +300,14 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
             left_procNo = left_procNo+1;
             right_procNo = right_procNo-1;
             left_procNo_data_start = num_lt_pivot_arr[left_procNo];
-            right_procNo_data_start = 0;
+            right_procNo_data_start = num_lt_pivot_arr[right_procNo];
             num_swap_ele_left_procNo = all_counts[left_procNo]-num_lt_pivot_arr[left_procNo];
             num_swap_ele_right_procNo = num_lt_pivot_arr[right_procNo];
         }else if(num_swap_ele_right_procNo<num_swap_ele_left_procNo){
             if(num_swap_ele_right_procNo>0){
                 if(myRank==right_procNo){//this is right processor
                     // send and receive
-                    MPI_Sendrecv_replace(data+right_procNo_data_start, num_swap_ele_right_procNo, myDataType_MPI,
+                    MPI_Sendrecv_replace(data+right_procNo_data_start-num_swap_ele_right_procNo, num_swap_ele_right_procNo, myDataType_MPI,
                             left_procNo, tree_level*10, left_procNo, tree_level*10,
                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     send_reqs_sent++;
@@ -333,101 +320,44 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     send_reqs_sent++;
                 }
-                right_procNo_data_start+=num_swap_ele_right_procNo;
+                right_procNo_data_start-=num_swap_ele_right_procNo;
                 left_procNo_data_start+=num_swap_ele_right_procNo;
             }
             num_swap_ele_left_procNo=num_swap_ele_left_procNo-num_swap_ele_right_procNo;
             right_procNo = right_procNo-1;
             num_swap_ele_right_procNo = num_lt_pivot_arr[right_procNo];
-            right_procNo_data_start = 0;
+            right_procNo_data_start = num_lt_pivot_arr[right_procNo];
             
         }
     }
     
-    // pSort::dataType *pivot_data_start = data+num_lt_pivot_arr[pivotProc]; //+1??
-    // if(pivotProc==startproc)
-    //     pivot_data_start+=1;
-    // // if(false)
-    // while(right_procNo>pivotProc){
-    //     //right not complete
-    //     // printf("right not complete");
-    //     if(myRank==right_procNo){
-    //         printf("\n(%d)right(%d) not complete %d",tree_level,right_procNo,num_swap_ele_right_procNo);
-    //     }
-    //     if(num_swap_ele_right_procNo!=0)
-    //     {
-    //         if(myRank==right_procNo){//this is right processor
-    //             // send and receive
-    //             MPI_Sendrecv_replace(data, num_swap_ele_right_procNo, myDataType_MPI,
-    //                         pivotProc, tree_level*10, pivotProc, tree_level*10,
-    //                         MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    //             send_reqs_sent++;
-    //         }else if(myRank==pivotProc){//this is right processor
-    //             // send and receive
-    //             MPI_Sendrecv_replace(pivot_data_start, num_swap_ele_right_procNo, myDataType_MPI,
-    //                         right_procNo, tree_level*10, right_procNo, tree_level*10,
-    //                         MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    //             send_reqs_sent++;
-    //         }
-    //     }
-    //     right_procNo-=1;
-    //     pivot_data_start+=num_swap_ele_right_procNo;
-    //     num_swap_ele_right_procNo = num_lt_pivot_arr[right_procNo];
-    // }
-    // // if(false)
-    // while(left_procNo<pivotProc){
-    //     //left not complete
-    //     if(myRank==left_procNo){
-    //         printf("\n(%d_)left(%d) not complete %d",tree_level,left_procNo,num_swap_ele_left_procNo);
-    //     }
-    //     if(num_swap_ele_left_procNo!=0){
-    //         if(myRank==left_procNo){//this is left processor
-    //             // send and receive
-    //             // pSort::dataType *data_start_left = data+num_lt_pivot_arr[left_procNo];//ERROR
-    //             // pSort::dataType *data_start_left = data+all_counts[left_procNo]-1-num_swap_ele_left_procNo;
-    //             if(left_procNo== startproc )
-    //                 data_start_left+=1;
-    //             MPI_Sendrecv_replace(data_start_left, num_swap_ele_left_procNo, myDataType_MPI,
-    //                         pivotProc, tree_level*10, pivotProc, tree_level*10,
-    //                         MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    //             send_reqs_sent++;
-                
-    //         }else if(myRank==pivotProc){//this is right processor
-    //             // send and receive
-    //             MPI_Sendrecv_replace(pivot_data_start-num_swap_ele_left_procNo, num_swap_ele_left_procNo, myDataType_MPI,
-    //                         left_procNo, tree_level*10, left_procNo, tree_level*10,
-    //                         MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    //             send_reqs_sent++;
-    //         }
-    //     }
-    //     pivot_data_start-=num_swap_ele_left_procNo;
-    //     left_procNo+=1;
-    //     num_swap_ele_left_procNo=all_counts[left_procNo]-num_lt_pivot_arr[left_procNo];
-    // }
+    
     //replace pivot 
     
     // printf("\npivotProc %d %d",pivotProc,startproc);
     // if(myRank==0)
     //     printf("%s",print_arr2(data,all_counts[myRank]).c_str());
-    if(start==pivotLocation){
-        ;
-    }else if(pivotProc==startproc ){
-        if( myRank==pivotProc){
-            pSort::dataType temp = data[start-all_offsets[pivotProc]];
-            data[start-all_offsets[pivotProc]] = data[pivotLocation-all_offsets[pivotProc]];
-            data[pivotLocation-all_offsets[pivotProc]]=temp;
-            // printf("\nmanual swap done %d",myRank);
-        }
-    }else{
-        if(myRank==startproc){
-            MPI_Sendrecv_replace(data+ (start-all_offsets[startproc]) , 1, myDataType_MPI,
-                        pivotProc, tree_level*10, pivotProc, tree_level*10,
-                        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        }
-        if(myRank==pivotProc){
-            MPI_Sendrecv_replace(data+(pivotLocation-all_offsets[pivotProc]), 1, myDataType_MPI,
-                        startproc, tree_level*10, startproc, tree_level*10,
-                        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    if(true){
+        if(start==pivotLocation){
+            ;
+        }else if(pivotProc==startproc ){
+            if( myRank==pivotProc){
+                pSort::dataType temp = data[start-all_offsets[pivotProc]];
+                data[start-all_offsets[pivotProc]] = data[pivotLocation-all_offsets[pivotProc]];
+                data[pivotLocation-all_offsets[pivotProc]]=temp;
+                // printf("\nmanual swap done %d",myRank);
+            }
+        }else{
+            if(myRank==startproc){
+                MPI_Sendrecv_replace(data+ (start-all_offsets[startproc]) , 1, myDataType_MPI,
+                            pivotProc, tree_level*10, pivotProc, tree_level*10,
+                            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            }
+            if(myRank==pivotProc){
+                MPI_Sendrecv_replace(data+(pivotLocation-all_offsets[pivotProc]), 1, myDataType_MPI,
+                            startproc, tree_level*10, startproc, tree_level*10,
+                            MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            }
         }
     }
     
@@ -447,15 +377,17 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
     //     fout.close();
     // #endif
     
-    if(pivotLocation>start){
-        // printf("\ncalling on left: (%d,%d) ",start,pivotLocation-1);
-        if(tree_level<=1)
-        pquickSort(data,all_counts,all_offsets,start,pivotLocation-1,tree_level+1);
-    }
-    // if(pivotLocation<end){
-    //     // printf("\ncalling on right: (%d,%d) ",pivotLocation+1,end);
-    //     pquickSort(data,all_counts,all_offsets,pivotLocation+1,end,tree_level+1);
+    // if(pivotLocation>start){
+    //     // printf("\ncalling on left: (%d,%d) ",start,pivotLocation-1);
+    //     // if(tree_level<=1)
+    //     pquickSort(data,all_counts,all_offsets,start,pivotLocation-1,tree_level+1);
     // }
+    if(pivotLocation<end){
+        // printf("\ncalling on right: (%d,%d) ",pivotLocation+1,end);
+        // if(true or tree_level<=1)
+            pquickSort(data,all_counts,all_offsets,pivotLocation+1,end,tree_level+1);
+        
+    }
     
 }
 

@@ -31,7 +31,9 @@ int main(int argc, char* argv[])
     // this_incr=2028;
     // this_incr=2056;
     // this_incr=2034;
-    this_incr=2088;
+    // this_incr=2088;
+    // this_incr = 2079;
+    // this_incr = 2025;
     
     
     srand (myRank*10+this_incr);//+time(0));
