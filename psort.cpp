@@ -12,6 +12,7 @@ using namespace std;
 // #define createRandomData
 
 // #define DEBUG
+#define DEBUGOUT
 typedef struct {
     uint32_t x;
     char a, b;
@@ -400,9 +401,10 @@ void pSort::sort(dataType *data, int32_t n){
     #endif
     MPI_Barrier(MPI_COMM_WORLD);
     pquickSort(data,all_counts,all_offsets,0,num_ele_sort-1,0);
-    MPI_Barrier(MPI_COMM_WORLD);
-    #ifdef DEBUG
-        // ofstream fout;
+    //MPI_Barrier(MPI_COMM_WORLD);
+    #ifdef DEBUGOUT
+        printf("writing output to output_dir/out_%d.txt",myRank);
+        ofstream fout;
         fout.open("output_dir/out_"+ to_string(myRank)+".txt");
         // fprintf(fout,"pivot (%c,%c,%d)\n",pivot_this.a,pivot_this.b,pivot_this.x);
         fout<<"\n";
