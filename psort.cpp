@@ -12,7 +12,7 @@ using namespace std;
 // #define createRandomData
 
 // #define DEBUG
-#define DEBUGOUT
+//#define DEBUGOUT
 typedef struct {
     uint32_t x;
     char a, b;

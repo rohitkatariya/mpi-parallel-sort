@@ -8,11 +8,11 @@
 ### Specify email address to use for notification.
 #PBS -M csz208844@iitd.ac.in
 ####
-#PBS -l select=7:ncpus=1:mpiprocs=1
+#PBS -l select=6:ncpus=1:mpiprocs=1
 ### Specify "wallclock time" required for this job, hhh:mm:ss
 #PBS -l walltime=00:10:00
 #PBS -P col730.csz208844  
-#PBS -o `$PBS_JOBID`.txt
+#PBS -o jobOutput.txt
 #PBS -l place=scatter
 ###PBS -l software=OpenMPI
 # After job starts, must goto working directory. 

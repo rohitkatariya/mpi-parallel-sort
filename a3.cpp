@@ -8,7 +8,7 @@
 #include "psort.h"
 /* includes MPI library code specs */
 #define MAXSIZE 1000
-#define NUMDATA 1000000
+#define NUMDATA 60000000
 // #define MAXSIZE RAND_MAX
 using namespace std;
 void doProcessing(int myRank, int nProcs ){
