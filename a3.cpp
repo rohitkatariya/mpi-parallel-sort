@@ -9,7 +9,7 @@
 /* includes MPI library code specs */
 #define MAXSIZE 1000
 // #define NUMDATA 1294967296
-#define NUMDATA 10_000_000
+#define NUMDATA 20000000
 // #define MAXSIZE RAND_MAX
 using namespace std;
 

@@ -12,7 +12,7 @@ using namespace std;
 // #define createRandomData
 
 // #define DEBUG
-//#define DEBUGOUT
+#define DEBUGOUT
 typedef struct {
     uint32_t x;
     char a, b;
@@ -84,14 +84,14 @@ string print_arr2(pSort::dataType *arr,int len_arr){
 }
 
 template<class L>
-int internalPivoting(pSort::dataType *data,int start, int end,L pivot_this){
-    int i=start-1;
+int internalPivoting(pSort::dataType *data,long start, long end,L pivot_this){
+    long i=start-1;
     int count_less=0;
     int myRank;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     // printf("\n %d \t%s",myRank, print_arr2(data+start,end-start+1).c_str());
     // printf("\ninternal pivoting (rank,start,end), (%d,%d,%d)",myRank,start,end);
-    for( int j=i+1;j<=end;j++){
+    for( long j=i+1;j<=end;j++){
         if( compareData(data[j],pivot_this)==1 ){
             i++;
             count_less++;
@@ -104,12 +104,12 @@ int internalPivoting(pSort::dataType *data,int start, int end,L pivot_this){
     return count_less;
 }
 
-void sQuickSort(pSort::dataType *data, int start, int end){
+void sQuickSort(pSort::dataType *data, long start, long end){
     // return;
     if(start>=end)
         return;
     // printf("\nstart pivot(%d, %d)",start,end);
-    int pivot_loc = start+internalPivoting(data,start+1,end,data[start]);
+    long pivot_loc = start+internalPivoting(data,start+1,end,data[start]);
     pSort::dataType temp = data[pivot_loc];
     data[pivot_loc] = data[start];
     data[start]=temp;
@@ -192,7 +192,7 @@ void pquickSort(pSort::dataType *data, int32_t *all_counts, long *all_offsets, l
         if(myRank==0)
         fout<<"\npivot:("<<pivot_this.a-97<<","<<pivot_this.b<<","<<pivot_this.x<<",nltp:"<<num_lt_pivot<<")\n";
         fout<<"\n";
-        for(int i=max(0,start-all_offsets[myRank]); i<=min(end-all_offsets[myRank],all_counts[myRank]-1) ;i++){
+        for(long i=max(0,start-all_offsets[myRank]); i<=min(end-all_offsets[myRank],all_counts[myRank]-1) ;i++){
             fout<<"\t("<<data[i].a-97<<","<<data[i].b-97;//<<","<<data[i].x<<","<<i <<")";
             if(i%10==9)
                 fout<<"\n"<<myRank;
@@ -418,7 +418,7 @@ void pSort::sort(dataType *data, int32_t n){
         fout.open("output_dir/out_"+ to_string(myRank)+".txt");
         // fprintf(fout,"pivot (%c,%c,%d)\n",pivot_this.a,pivot_this.b,pivot_this.x);
         fout<<"\n";
-        for(int i=0; i<=all_counts[myRank]-1 ;i++){
+        for(int i=0; i<=all_counts[myRank]-1 && i<100;i++){
             // fout<<"\t"<<(data[i].a-97);//<<","<<data[i].b<<","<<data[i].x<<","<<i <<")";
             fout<<"\t"<<(data[i].a-97)<<","<<data[i].b-97; //<<","<<data[i].x<<","<<")";
             if(i%10==9)
