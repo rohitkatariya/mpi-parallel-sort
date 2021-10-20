@@ -19,6 +19,16 @@ typedef struct {
   } pivotStruct;
 void pSort::close(){}
 void pSort::init(){}
+long max_long(long a, long b){
+    if(a<b)
+    return b;
+    return a;
+}
+long min_long(long a, long b){
+    if(a<b)
+    return a;
+    return b;
+}
 template<class T>
 int compareData(pSort::dataType d1,T d2){
     if (d1.a<d2.a){
@@ -39,7 +49,7 @@ int compareData(pSort::dataType d1,T d2){
     return 0;
 }
 
-int get_proc_from_ele_idx(int ele_idx, int *all_counts,int nProcs){
+int get_proc_from_ele_idx(int32_t ele_idx, int32_t *all_counts,int nProcs){
     int proc_num=0;
     for(int i=0;i<nProcs;i++){
         if(ele_idx<all_counts[i])
@@ -115,7 +125,7 @@ void sQuickSort(pSort::dataType *data, int start, int end){
 }
 
 
-void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int start, int end,int tree_level){
+void pquickSort(pSort::dataType *data, int32_t *all_counts, long *all_offsets, long start, long end,int tree_level){
     int nProcs; 
     int myRank;
     MPI_Comm_size(MPI_COMM_WORLD, &nProcs);// Group size
@@ -142,7 +152,7 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
     }
     
     MPI_Datatype PivotDataType_MPI;
-    MPI_Datatype PivotDataType_T[3] = {MPI_CHAR, MPI_CHAR, MPI_UNSIGNED};
+    MPI_Datatype PivotDataType_T[3] = {MPI_CHAR, MPI_CHAR, MPI_UINT32_T};
     int PivotDataType_B[3]  = {1,1,1};//block lengths
     MPI_Aint PivotDataType_D[3]  = {offsetof(pivotStruct, b), offsetof(pivotStruct, a), offsetof(pivotStruct, x)};//offsets
     MPI_Type_create_struct(3, PivotDataType_B, PivotDataType_D, PivotDataType_T, &PivotDataType_MPI);
@@ -153,7 +163,7 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
     MPI_Request *all_send_requests= new MPI_Request[nProcs];
     if (myRank==startproc){
         // Send pivot element to all other processors
-        int curr_starting_idx = max(0,start-all_offsets[myRank]);
+        int curr_starting_idx = max_long(0,start-all_offsets[myRank]);
         pivot_this.a= data[curr_starting_idx].a;
         pivot_this.b= data[curr_starting_idx].b;
         pivot_this.x= data[curr_starting_idx].x;
@@ -171,9 +181,9 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
     
     int num_lt_pivot = 0;
     if(myRank!=startproc)
-        num_lt_pivot = internalPivoting(data,0,min(end-all_offsets[myRank],all_counts[myRank]-1),pivot_this);
+        num_lt_pivot = internalPivoting(data,0,min_long(end-all_offsets[myRank],all_counts[myRank]-1),pivot_this);
     else
-        num_lt_pivot = internalPivoting(data,start-all_offsets[myRank]+1,min(end-all_offsets[myRank],all_counts[myRank]-1),pivot_this);
+        num_lt_pivot = internalPivoting(data,start-all_offsets[myRank]+1,min_long(end-all_offsets[myRank],all_counts[myRank]-1),pivot_this);
     
     #ifdef DEBUG
         ofstream fout;
@@ -190,7 +200,7 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
         fout.close();
     #endif
     // send receive number of elements less than pivot
-    int *num_lt_pivot_arr = new int(nProcs) ;
+    int *num_lt_pivot_arr = new int[nProcs] ;
     num_lt_pivot_arr[myRank] = num_lt_pivot;
     MPI_Status status_this;
     MPI_Status recvStatus;
@@ -212,7 +222,7 @@ void pquickSort(pSort::dataType *data, int *all_counts, int *all_offsets, int st
             printf("\nnum_lt_pivot_arr %s",print_arr(num_lt_pivot_arr+startproc,endproc-startproc+1).c_str());
     #endif
     // calculate pivot location
-    int pivotLocation = start;
+    long pivotLocation = start;
     for( int i=startproc;i<=endproc;i++){
         pivotLocation+=num_lt_pivot_arr[i];
     }
@@ -376,12 +386,12 @@ void pSort::sort(dataType *data, int32_t n){
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank); // get my rank
     
     // Gathering information of number of elements at each processor 
-    int *all_counts = new int(nProcs);
-    MPI_Allgather( &n, 1, MPI_INT, all_counts, 1, MPI_INT, MPI_COMM_WORLD);
+    int32_t *all_counts = new int[nProcs];
+    MPI_Allgather( &n, 1, MPI_INT32_T, all_counts, 1, MPI_INT32_T, MPI_COMM_WORLD);
     
     // Counting total number of elements to be sorted and creating an offset array useful for converting global index to processor's local index
-    int num_ele_sort = 0;
-    int *all_offsets=new int(nProcs);
+    long num_ele_sort = 0;
+    long *all_offsets=new long[nProcs];
     
     for( int i =0;i<nProcs;i++){
         all_offsets[i]=num_ele_sort;

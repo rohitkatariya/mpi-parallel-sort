@@ -37,3 +37,4 @@ input*.txt
 *.exe
 *.out
 *.app
+s.cpp
